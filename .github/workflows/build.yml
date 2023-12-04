@@ -39,7 +39,7 @@ jobs:
         with:
           use-cross: true
           command: build
-          args: --release --bin simple-http-server --locked --target=${{ matrix.TARGET }} -- -C opt-level=z -C panic=abort -C link-args=-Wl,-s
+          args: --release --bin simple-http-server --locked --target=${{ matrix.TARGET }} -C opt-level=z -C panic=abort -C link-args=-Wl,-s
       - uses: actions/upload-artifact@v2
         with:
           name: ${{ matrix.target }}-simple-http-server${{ env.BINARY_EXTENSION }}
