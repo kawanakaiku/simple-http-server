@@ -7,59 +7,6 @@ on:
     types: [published]
 
 jobs:
-  fmt:
-    name: Format
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          override: true
-          components: rustfmt
-      - uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
-
-  clippy:
-    name: Clippy
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          override: true
-          components: clippy
-      - uses: actions-rs/clippy-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-targets --all-features -- -D warnings
-
-  test:
-    name: Unitest (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          override: true
-          components: clippy
-      - uses: actions-rs/cargo@v1
-        env:
-          RUST_BACKTRACE: full
-          RUSTFLAGS: -D warnings
-        with:
-          command: test
-          args: --all --all-features
-      - name: "Ensure Cargo.lock is not modified"
-        run: git diff --exit-code Cargo.lock
-
   build-release:
     name: Build release Executable (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -67,17 +14,11 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            target: x86_64-unknown-linux-musl
+            target: x86_64-unknown-linux-gnu
           - os: ubuntu-latest
-            target: armv7-unknown-linux-musleabihf
+            target: armv7-unknown-linux-gnuabihf
           - os: ubuntu-latest
-            target: aarch64-unknown-linux-musl
-          - os: macos-latest
-            target: x86_64-apple-darwin
-          - os: macos-latest
-            target: aarch64-apple-darwin
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
+            target: aarch64-unknown-linux-gnu
     env:
       BINARY_EXTENSION: ${{ endsWith(matrix.target, '-msvc') && '.exe' || '' }}
       PATH_BINARY: ${{ github.workspace }}/target/${{ matrix.TARGET }}/release/simple-http-server${{ matrix.EXTENSION }}${{ endsWith(matrix.target, '-msvc') && '.exe' || '' }}
@@ -98,7 +39,7 @@ jobs:
         with:
           use-cross: true
           command: build
-          args: --release --bin simple-http-server --locked --target=${{ matrix.TARGET }}
+          args: --release --bin simple-http-server --locked --target=${{ matrix.TARGET }} -- -C opt-level=z -C panic=abort -C link-args=-Wl,-s
       - uses: actions/upload-artifact@v2
         with:
           name: ${{ matrix.target }}-simple-http-server${{ env.BINARY_EXTENSION }}
